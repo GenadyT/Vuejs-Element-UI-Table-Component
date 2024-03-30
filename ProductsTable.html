@@ -16,7 +16,7 @@
         <section class="crid-sec">
             <script src="//unpkg.com/vue@2/dist/vue.js"></script>
             <script src="//unpkg.com/element-ui@2.15.14/lib/index.js"></script>
-            <script src="//unpkg.com/axios/dist/axios.min.js"></script>
+            <script src="//unpkg.com/axios/dist/axios.min.js"></script>            
             <div id="app">
                 <section class="products-manager-sec products-grid-sec">
                     <h3>Products Table</h3>            
@@ -43,9 +43,6 @@
                             <el-table-column sortable label="Sales Start Date"
                                             prop="salesStartDate">
                             </el-table-column>
-                            <el-table-column label="Image"
-                                            prop="image">
-                            </el-table-column>
                             <el-table-column align="right">
                                 <template slot="header" slot-scope="scope">
                                     <el-input v-model="search"
@@ -53,8 +50,6 @@
                                             placeholder="Search Code/Name" />
                                 </template>
                                 <template slot-scope="scope">
-                                    <!--<el-button size="mini"
-                                            @click="handleEdit(scope.$index, scope.row)">Edit</el-button>-->
                                     <el-button size="mini"
                                             type="danger"
                                             @click="handleDelete(scope.$index, scope.row)">Delete</el-button>
@@ -94,9 +89,9 @@
                                                     <label for="txtSalesStartDate" >Sales Start Date:</label>
                                                     <input type="text" id="txtSalesStartDate" name="SalesStartDate" v-model="crudRow.salesStartDate"
                                                         class="product-field"  /><br><br />
-                                                    <label for="txtImage" >Image:</label>
-                                                    <input type="text" id="txtImage" name="Image" v-model="crudRow.image"
-                                                        class="product-field"  />
+                                                    <label for="inputFile" >Image:</label>                                           
+                                                    <input type="file" ref="inputFile" name="inputFile" @change="handleFileUpload($event)" 
+                                                        class="product-field input-file">
                                                 </fieldset>                                    
                                             </div>
                                         </div>
@@ -104,9 +99,12 @@
                                     <!-- :src="url" -->
                                     <td rowspan="2" style="width:40%; vertical-align:top;">
                                         <div class="block picture-cont" v-for="fit in fits" :key="fit">
-                                            <el-image id="picProductImage" class="product-image"
-                                            v-bind:src="'http://localhost:5035/api/Products/GetProductImage/' + (crudRow.image.length > 0 ? crudRow.image : 'blankImage.jpg')"
-                                            :fit="fit"></el-image>    
+                                            <el-image class="product-image" v-show="!bTempImage"
+                                            v-bind:src="getImageSrc(crudRow)"
+                                            :fit="fit"></el-image>
+                                            <el-image class="product-image" v-show="bTempImage"
+                                            :src="imageTempUrl"
+                                            :fit="fit"></el-image>
                                         </div>
                                     </td>
                                     <td rowspan="2" style="width:20%; vertical-align:top;"></td>
@@ -130,7 +128,6 @@
             </div>
         </section>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
     <script id="gridScript">
         var emptyProduct = {
             code: '',
@@ -138,7 +135,7 @@
             description: '',
             salesStartDate: '',
             image: "",
-        }      
+        }     
 
         var Main = {
             data() {
@@ -146,17 +143,20 @@
                     products: [],
                     gridFullData: [],
                     gridCurrentPageData: [],
-                    gridCurrentPageIndex: 0,
+                    gridCurrentPageIndex: 1,
                     crudRow: emptyProduct,
                     currentPageIndex: 1,
                     search: '',
                     sortObj: null,
-                    pageSize: 5,
+                    pageSize: 5,                    
+                    
                     fits: ['contain'],
-                    url: 'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
+                    imageTempUrl: '',
+                    bTempImage: false,
                 }
             },            
             methods: {
+
                 handleEdit(index, row) {
                     crudRow = row;
                 },
@@ -164,17 +164,28 @@
                     _deleteProduct(index, row.code);
                 },
                 handleCurrentChange(val) {
-                    if (val) {
+                    if (val) {		
                         if (Number.isInteger(val)) {                        
-                            // page changing
-                            app.gridCurrentPageIndex  = val;
-                            app.currentPageIndex = val;
-                            app.gridCurrentPageData = paginate(app.gridFullData, 5, val);
+                                // page changing
+                                app.gridCurrentPageIndex  = val;
+                                app.currentPageIndex = val;
+                                app.gridCurrentPageData = paginate(app.gridFullData, 5, val);
                         }
                         else {
-                            // row selecting
-                            this.crudRow = Object.assign({}, val);    
+                                // row selecting
+                                app.bTempImage = false;
+                                app.imageTempUrl = '';
+                                this.crudRow = Object.assign({}, val);
+
+                                this.$refs.inputFile.value = null;
                         }                            
+                    }
+                },
+                getImageSrc(crudRow) {
+                    if((this.crudRow !== undefined) && (crudRow.code > 0)) {
+                        return  'http://localhost:5035/api/Products/GetProductImage/' + crudRow.code;
+                    } else {
+                        return "src/images/blankImage.jpg";
                     }
                 },
                 handleSortChange(sortObj) {
@@ -189,6 +200,13 @@
                 btnProductInsertClick() {
                     _insertProduct(this.crudRow);    
                 },
+
+                handleFileUpload(event) {
+                    app.crudRow.image = event.target.files[0];
+                    app.imageTempUrl = URL.createObjectURL(app.crudRow.image);
+                    app.bTempImage = true;
+                },
+
             },
             mounted() {
                 _getProducts();
@@ -203,153 +221,177 @@
             axios
                     .get("http://localhost:5035/api/Products")
                     .then(response => {
-                        app.gridFullData = response.data;
-                        app.gridCurrentPageData = paginate(app.gridFullData, 5, 1);
+                            app.gridFullData = response.data;
+                            app.gridCurrentPageData = paginate(app.gridFullData, 5, 1);
                     });
         }
 
-        function _handleSortChange(sortObj) {
-            app.sortObj = sortObj;
-            var sortDir = sortObj.order;
-            var bAscending = sortDir == "ascending" ? true : false;
-           
-            _sortGrid(sortObj.prop, bAscending);
-                    
-            app.gridCurrentPageData = paginate(app.gridFullData, 5, 1);
-            app.gridCurrentPageIndex = 1;
-            app.currentPageIndex = 1;
-            app.crudRow = emptyProduct;
-        }
+function _handleSortChange(sortObj) {
+	app.sortObj = sortObj;
+	var sortDir = sortObj.order;
+	var bAscending = sortDir == "ascending" ? true : false;
+ 
+	_sortGrid(sortObj.prop, bAscending);
+					
+	app.gridCurrentPageData = paginate(app.gridFullData, 5, 1);
+	app.gridCurrentPageIndex = 1;
+	app.currentPageIndex = 1;
+	app.crudRow = emptyProduct;
+}
 
-        function _sortGrid(prop, bAscending) {
-            switch(prop) {
-                case "code":
-                    if (bAscending) {
-                        app.gridFullData.sort((a,b) => (a.code > b.code) ? 1 : ((b.code > a.code) ? -1 : 0));                                
-                    } else {
-                        app.gridFullData.sort((a,b) => (a.code < b.code) ? 1 : ((b.code < a.code) ? -1 : 0));                                
-                    }
-                    
-                    break;
-                case "name":
-                    if (bAscending) {
-                        app.gridFullData.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
-                    } else {
-                        app.gridFullData.sort((a,b) => (a.name < b.name) ? 1 : ((b.name < a.name) ? -1 : 0));
-                    }
-                    
-                    break;
-                case "description":
-                    if (bAscending) {
-                        app.gridFullData.sort((a,b) => (a.description > b.description) ? 1 : ((b.description > a.description) ? -1 : 0));
-                    } else {
-                        app.gridFullData.sort((a,b) => (a.description < b.description) ? 1 : ((b.description < a.description) ? -1 : 0));
-                    }
-                    
-                    break;
-                case "salesStartDate":
-                    if (bAscending) {
-                        app.gridFullData.sort((a,b) => (a.salesStartDate > b.salesStartDate) ? 1 : ((b.salesStartDate > a.salesStartDate) ? -1 : 0));
-                    } else {
-                        app.gridFullData.sort((a,b) => (a.salesStartDate < b.salesStartDate) ? 1 : ((b.salesStartDate < a.salesStartDate) ? -1 : 0));
-                    }
-                    
-                    break;
-                default:
-                    app.gridFullData.sort((a,b) => (a.code > b.code) ? 1 : ((b.code > a.code) ? -1 : 0));
-            } 
-        }
+function _sortGrid(prop, bAscending) {
+	switch(prop) {
+			case "code":
+					if (bAscending) {
+							app.gridFullData.sort((a,b) => (a.code > b.code) ? 1 : ((b.code > a.code) ? -1 : 0));                                
+					} else {
+							app.gridFullData.sort((a,b) => (a.code < b.code) ? 1 : ((b.code < a.code) ? -1 : 0));                                
+					}
+					
+					break;
+			case "name":
+					if (bAscending) {
+							app.gridFullData.sort((a,b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
+					} else {
+							app.gridFullData.sort((a,b) => (a.name < b.name) ? 1 : ((b.name < a.name) ? -1 : 0));
+					}
+					
+					break;
+			case "description":
+					if (bAscending) {
+							app.gridFullData.sort((a,b) => (a.description > b.description) ? 1 : ((b.description > a.description) ? -1 : 0));
+					} else {
+							app.gridFullData.sort((a,b) => (a.description < b.description) ? 1 : ((b.description < a.description) ? -1 : 0));
+					}
+					
+					break;
+			case "salesStartDate":
+					if (bAscending) {
+							app.gridFullData.sort((a,b) => (a.salesStartDate > b.salesStartDate) ? 1 : ((b.salesStartDate > a.salesStartDate) ? -1 : 0));
+					} else {
+							app.gridFullData.sort((a,b) => (a.salesStartDate < b.salesStartDate) ? 1 : ((b.salesStartDate < a.salesStartDate) ? -1 : 0));
+					}
+					
+					break;
+			default:
+					app.gridFullData.sort((a,b) => (a.code > b.code) ? 1 : ((b.code > a.code) ? -1 : 0));
+	} 
+}
 
-        function _deleteProduct(index, code) {
-            axios
-                    .delete("http://localhost:5035/api/Products/" + code, {
-                        headers: {
-                        'Access-Control-Allow-Origin': '*',
-                    }})
-                    .then(response => {
-                        if (response.status < 500) {
-                            var item = app.gridFullData.find((element) => element.code == code);
-                            var itemIndex = app.gridFullData.indexOf(item);
-                            var pageIndex = app.gridCurrentPageIndex;
+function _deleteProduct(index, code) {
+	axios
+					.delete("http://localhost:5035/api/Products/" + code, {
+							headers: {
+							'Access-Control-Allow-Origin': '*',
+					}})
+					.then(response => {
+							if (response.status < 500) {
+									var item = app.gridFullData.find((element) => element.code == code);
+									var itemIndex = app.gridFullData.indexOf(item);
+									var pageIndex = app.gridCurrentPageIndex;
 
-                            if (itemIndex !== -1) {
-                                app.gridFullData.splice(itemIndex, 1); // 2nd parameter means remove one item only
-                                let currentPageData = paginate(app.gridFullData, 5, app.gridCurrentPageIndex);
+									if (itemIndex !== -1) {
+											app.gridFullData.splice(itemIndex, 1); // 2nd parameter means remove one item only
+											let currentPageData = paginate(app.gridFullData, 5, app.gridCurrentPageIndex);
 
-                                if (currentPageData.length == 0) {
-                                    app.gridCurrentPageIndex -= 1;
-                                    pageIndex -= 1;
-                                }
+											if (currentPageData.length == 0) {
+													app.gridCurrentPageIndex -= 1;
+													pageIndex -= 1;
+											}
 
-                                app.gridCurrentPageData = paginate(app.gridFullData, 5, pageIndex);
+											app.gridCurrentPageData = paginate(app.gridFullData, 5, pageIndex);
 
-                                app.crudRow = emptyProduct;
-                            }
+											app.crudRow = emptyProduct;
+									}
 
-                            alert('The product was deleted');
-                        }
-                        else {
-                            alert('There was system error!');                                
-                        }
-                    });
-        }
+									alert('The product was deleted');
+							}
+							else {
+									alert('There was system error!');                                
+							}
+					});
+}
 
-        function _updateProduct(crudObject){
-            axios
-                    .put("http://localhost:5035/api/Products/" + crudObject.code,
-                    crudObject )
-                    .then(response => {
-                        if (response.status < 500) {
-                            let dataRow;
-                            
-                            dataRow = app.gridFullData.find((element) => element.code == crudObject.code);
-                            dataRow.name = crudObject.name;
-                            dataRow.description = crudObject.description;
-                            dataRow.salesStartDate = crudObject.salesStartDate;
-                            dataRow.image = crudObject.image;                            
+function _updateProduct(crudObject) {
+    
+	const formData = fillFormData(crudObject);
+	const headers = { 'Content-Type': 'multipart/form-data' };
 
-                            dataRow = app.gridCurrentPageData.find((element) => element.code == crudObject.code);
-                            dataRow.name = crudObject.name;
-                            dataRow.description = crudObject.description;
-                            dataRow.salesStartDate = crudObject.salesStartDate;
-                            dataRow.image = crudObject.image;
-                            
-                            alert('The product was updated');
-                        }
-                        else {
-                            alert('There was system error!');                                
-                        }
-                    });
-        }
+	axios
+					.put("http://localhost:5035/api/Products/" + crudObject.code,
+					formData, { headers } )
+					.then(response => {
+							if (response.status < 500) {
+									let dataRow;
+									
+									dataRow = app.gridFullData.find((element) => element.code == crudObject.code);
+									dataRow.name = crudObject.name;
+									dataRow.description = crudObject.description;
+									dataRow.salesStartDate = crudObject.salesStartDate;
+									dataRow.image = crudObject.image;                            
 
-        function _insertProduct(crudObject){
-            axios
-                    .post("http://localhost:5035/api/Products",
-                    crudObject )
-                    .then(response => {                        
-                        if (response.status < 500) {
+									dataRow = app.gridCurrentPageData.find((element) => element.code == crudObject.code);
+									dataRow.name = crudObject.name;
+									dataRow.description = crudObject.description;
+									dataRow.salesStartDate = crudObject.salesStartDate;
+									dataRow.image = crudObject.image;
+									
+									alert('The product was updated');
+							}
+							else {
+									alert('There was system error!');                                
+							}
+					});
+}
+
+function _insertProduct(crudObject){
+    const formData = fillFormData(crudObject);
+	const headers = { 'Content-Type': 'multipart/form-data' };
+
+	axios
+            .post("http://localhost:5035/api/Products",
+            formData, { headers } )
+            .then(response => {         
+                    if (response.status < 500) {
                             crudObject.code = response.data;
 
                             app.gridFullData.push(crudObject);
 
                             if (app.sortObj) {
-                                _sortGrid(app.sortObj.prop, app.sortObj.order)
+                                    _sortGrid(app.sortObj.prop, app.sortObj.order)
                             }                            
                             
                             app.gridCurrentPageData = paginate(app.gridFullData, 5, app.gridCurrentPageIndex);
                             
                             alert('The product was inserted');
-                        }
-                        else {
+                    }
+                    else {
                             alert('There was system error!');                                
-                        }
-                    });
-        }
+                    }
+            });
+}
 
-        function paginate(array, page_size, page_number) {
-            // human-readable page numbers usually start with 1, so we reduce 1 in the first argument
-            return array.slice((page_number - 1) * page_size, page_number * page_size);
-        }
+function fillFormData(crudObject) {
+    const formData = new FormData();
+
+	formData.append('code', crudObject.code);
+	formData.append('name', crudObject.name);
+	formData.append('description', crudObject.description);
+	formData.append('salesStartDate', crudObject.salesStartDate);
+
+    if(crudObject.image["type"] !== undefined) {
+        formData.append('image', crudObject.image);
+    }else {
+        formData.append('image', new File([""], "dummyFile"));
+    }
+
+    return formData;
+}
+
+function paginate(array, page_size, page_number) {
+	// human-readable page numbers usually start with 1, so we reduce 1 in the first argument
+	return array.slice((page_number - 1) * page_size, page_number * page_size);
+}
     </script>
 </body>
 </html>

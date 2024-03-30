@@ -364,6 +364,10 @@ input[type=number] {
 	width: 180px;
 }
 
+.input-file {
+	font-size: 12.5px;
+}
+
 .button-cont {
 	/* padding: 5px; */
 	padding-left: 2px;
