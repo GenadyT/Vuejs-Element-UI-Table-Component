@@ -1,5 +1,6 @@
 # WebApiElementUIClient - Web Application
-## 1. Start Page - ProductsTable.html
+## 1. The project's data source is the Web-Api-Entity-Framework-Example1 repository project
+## 2. Start Page - ProductsTable.html
 ## 3. Languages - JavaScript, HTML, CSS 
-## 3.	Frame Work - Vuejs (vuejs.org)
-## 4. UI Controls - Element UI (element.eleme.io/#/en-US/component/layout)
+## 4.	Frame Work - Vuejs (vuejs.org)
+## 5. UI Controls - Element UI (element.eleme.io/#/en-US/component/layout)
