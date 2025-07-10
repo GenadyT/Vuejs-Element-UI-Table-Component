@@ -18,4 +18,4 @@ The Products data is presented by Element UI Table Component.
 
 ### External links
 
-[Rapid API](https://element.eleme.io/#/en-US/component/table)
+[Element UI Table Component](https://element.eleme.io/#/en-US/component/table)
