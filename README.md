@@ -14,4 +14,8 @@ The Products data is presented by Element UI Table Component.
 #### 1. Start Page: ProductsTable.html
 #### 2. Languages: JavaScript, HTML, CSS 
 #### 3.	Frame Work: Vuejs (vuejs.org)
-#### 4. UI Controls: Element UI (element.eleme.io/#/en-US/component/layout) components
+#### 4. UI Controls: Element UI components
+
+### External links
+
+[Rapid API](element.eleme.io/#/en-US/component/layout)
